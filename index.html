@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Nomor Handphone</title>
+    <!-- Load Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Style tambahan jika diperlukan */
+        /* .form-container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+        } */
+        .icon-label {
+            display: block;
+            text-align: center;
+            font-size: 12px; /* Adjust the font size as needed */
+        }
+
+        .w-message {
+            display: inline;
+        }
+
+        .instant-mode {
+            display: none;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container mt-5">
+    <div class="card">
+        <div class="card-header">Form Nomor Handphone</div>
+        <div class="card-body">
+            <form id="phoneForm">
+                <div class="mb-3">
+                    <label for="phoneNumber" class="form-label">Nomor Handphone</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="phoneNumber" name="phoneNumber"
+                               placeholder="Masukkan nomor handphone" required>
+                        <a id="copyButton" type="button" class="btn btn-outline-secondary">
+                            <i class="fas fa-copy"></i>
+                            <span class="icon-label">salin</span>
+                        </a>
+                        <a id="pasteButton" class="btn btn-outline-secondary">
+                            <i class="fas fa-paste"></i>
+                            <span class="icon-label">tempel</span>
+                        </a>
+                    </div>
+                    <div id="phoneError" class="invalid-feedback"></div>
+                    <div class="form-check mx-2 my-2">
+                        <input class="form-check-input" type="checkbox" value="" id="checkPesan" checked>
+                        <label class="form-check-label" for="checkPesan">
+                            Sertakan pesan
+                        </label>
+                    </div>
+                    <div class="w-message">
+                        <div class="form-group mx-2 my-2 pb-2">
+                            <label for="driverMode" class="my-2">Driver Mode</label>
+                            <select class="form-control" id="driverMode">
+                                <option value="food" selected>Food</option>
+                                <option value="instant">Instant</option>
+                            </select>
+                        </div>
+                        <div class="instant-mode">
+                            <label for="receiverName" class="form-label mx-2">Nama Penerima</label>
+                            <div class="form-group mx-2 mb-3">
+                                <input type="text" class="form-control" id="receiverName" name="receiverName"
+                                       placeholder="Masukkan nama penerima">
+                            </div>
+                        </div>
+                    </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary" id="sendButton">Validasi</button>
+                </div>
+                <!-- Tombol reload dengan ikon Font Awesome kecil -->
+                <a id="reloadButton" class="btn btn-sm"><i class="fas fa-redo fa-sm"></i> Reset
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Load Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- jQuery (diperlukan untuk beberapa komponen Bootstrap) -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+    // Contoh validasi nomor handphone saat form disubmit menggunakan jQuery
+    $(document).ready(function () {
+        $('#receiverName').on('keyup', function (e) {
+            e.preventDefault()
+            resetButtonSend()
+        })
+        $('#driverMode').on('change', function (e) {
+            e.preventDefault()
+            const driverMode = $(this).val()
+            if (driverMode === 'instant') {
+                $('.instant-mode').show()
+                $('#receiverName').attr('required', true)
+
+                resetButtonSend()
+            } else {
+                $('.instant-mode').hide()
+                $('#receiverName').attr('required', false)
+                resetButtonSend()
+            }
+        })
+        $('#phoneNumber').on('keyup', function (e) {
+            e.preventDefault()
+            resetButtonSend()
+        })
+        // Ketika tombol "Paste" diklik
+        $('#pasteButton').click(function () {
+            // Menempelkan teks yang disalin dari clipboard ke input nomor handphone
+            navigator.clipboard.readText()
+                .then(function (text) {
+                    $('#phoneNumber').val(text)
+                    const checkPesan = $('#checkPesan').is(':checked')
+                    const instantMode = $('#driverMode').val() === 'instant'
+                    const receiverName = $('#receiverName').val()
+                    fetchConfigAndValidatePhoneNumber(text, checkPesan, instantMode, receiverName)
+                })
+                .catch(function (err) {
+                    console.error('Gagal melakukan paste: ', err)
+                });
+        });
+        $('#checkPesan').change(function (e) {
+            e.preventDefault()
+            const checkPesan = $(this).is(':checked');
+            if (checkPesan) {
+                $('.w-message').show()
+                if ($('#driverMode').val() === 'instant') {
+                    $('.instant-mode').show()
+                    $('#receiverName').attr('required', true)
+                }
+            } else {
+                $('.w-message').hide()
+            }
+            resetButtonSend()
+        })
+        // Tombol reload diklik
+        $('#reloadButton').click(function () {
+            // Lakukan reload halaman
+            $('#phoneForm').trigger('reset')
+            $('#phoneForm #sendButton').replaceWith('<button type="submit" class="btn btn-primary">Validasi</button>')
+            $('#phoneNumber').attr('readonly', false)
+            $('.w-message').show()
+            $('.instant-mode').hide()
+            $('#receiverName').attr('required', false)
+        })
+        // Ketika tombol "Salin" diklik
+        $('#copyButton').click(function () {
+            // Mendapatkan nilai dari input nomor handphone
+            const phoneNumberValue = $('#phoneNumber').val()
+
+            // Menyalin nilai ke clipboard menggunakan metode modern "navigator.clipboard"
+            navigator.clipboard.writeText(phoneNumberValue)
+                .then(function () {
+                    // Tindakan jika penyalinan berhasil
+                    $('#phoneError').text('Nomor handphone berhasil disalin').show().delay(700).fadeOut('slow')
+                })
+                .catch(function (err) {
+                    // Tindakan jika penyalinan gagal
+                    console.error('Gagal menyalin nomor handphone: ', err)
+                })
+        })
+        $('#phoneForm').submit(function (e) {
+            e.preventDefault() // Menghentikan proses submit default
+
+            const phoneNumber = $('#phoneNumber').val()
+            const checkPesan = $('#checkPesan').is(':checked')
+            const instantMode = $('#driverMode').val() === 'instant'
+            const receiverName = $('#receiverName').val()
+
+            // panggil ajax
+            fetchConfigAndValidatePhoneNumber(phoneNumber, checkPesan, instantMode, receiverName);
+        })
+
+        function validatePhoneNumber(url, phoneNumber, checkPesan, instantMode, receiverName) {
+            console.log('Validating phone number:', phoneNumber);
+            console.log('Include message:', checkPesan);
+            // Perform further processing to the API endpoint
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: {
+                    phone_number: phoneNumber,
+                    with_message: checkPesan,
+                    instant_mode: instantMode,
+                    receiver_name: receiverName
+                },
+                success: function (response) {
+                    // Logic for successful request
+                    console.log(response);
+
+                    if (response.status === 'fail') {
+                        // Show error message if status is fail
+                        $('#phoneError').text(response.message).show().delay(700).fadeOut('slow');
+                        $('#phoneForm #sendButton').replaceWith('<button type="submit" class="btn btn-primary">Validasi</button>')
+                        return;
+                    }
+
+                    // Add a button as a link with the response.data as the URL
+                    const button = '<a href="' + response.data.send_wa + '" class="btn btn-success" target="_blank" id="sendButton">Kirim</a>';
+
+                    // Change submit button to 'Kirim' button
+                    $('#phoneForm button[type="submit"]').replaceWith(button);
+                    // Change input value to response.data
+                    $('#phoneNumber').val(response.data.phone_wa)
+                },
+                error: function (xhr, status, error) {
+                    // Logic for error during request
+                    console.error(error);
+                    // For example, display error message or take other actions
+                }
+            });
+        }
+
+// Function to fetch the config file and then validate phone number
+        async function fetchConfigAndValidatePhoneNumber(phoneNumber, checkMessage = true, instantMode = false, receiverName = '') {
+            try {
+                const response = await fetch('config.json');
+                const config = await response.json();
+
+                if (config && config.PHONE_TO_WA_API) {
+                    const url = config.PHONE_TO_WA_API;
+                    console.log('Retrieved URL:', url);
+                    validatePhoneNumber(url, phoneNumber, checkMessage, instantMode, receiverName);
+                } else {
+                    console.log('URL could not be retrieved.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function resetButtonSend() {
+            const buttonSend = $('#phoneForm #sendButton').text()
+            if (buttonSend === 'Kirim') {
+                const button = '<button type="submit" class="btn btn-primary" id="sendButton">Validasi</button>'
+                $('#phoneForm #sendButton').replaceWith(button)
+            }
+        }
+    })
+</script>
+
+</body>
+</html>
