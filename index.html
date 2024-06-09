@@ -238,7 +238,7 @@
 
                 const templateMessage = `Halo, saya ${driverName}.` +
                 `\nSaya sedang mengantar pesanan Anda.` +
-                `\n${message}"` +
+                `\n${message}` +
                 `\n\nTerima kasih.`
 
                 const encodedMessage = encodeURIComponent(templateMessage)
@@ -252,6 +252,13 @@
             $('#phoneNumber').val(url)
         }
     })
+
+    String.prototype.ucwords = function() {
+        return this.replace(/\b\w/g, function(l) {
+            return l.toUpperCase();
+        })
+    }
+
 </script>
 
 </body>
